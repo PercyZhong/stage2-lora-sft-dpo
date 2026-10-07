@@ -218,3 +218,26 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local experiment artifacts
+models/
+data/
+runs/
+outputs/
+checkpoints/
+**/checkpoint-*/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.gguf
+*.arrow
+*.parquet
+*.jsonl
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.zst

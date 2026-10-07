@@ -1,0 +1,10 @@
+{
+  "seed": 42,
+  "model": {"base_path": "models/Qwen2.5-0.5B", "source": "Qwen/Qwen2.5-0.5B", "revision": "SET_LOCAL_SNAPSHOT_COMMIT", "dtype": "bfloat16"},
+  "data": {"source_path": "data/raw/ultrafeedback_binarized", "source_name": "HuggingFaceH4/ultrafeedback_binarized", "source_revision": "SET_DATASET_COMMIT", "source_split": "all-local-splits", "prepared_dir": "data/prepared", "max_records": 4000, "split_fractions": {"sft": 0.4, "dpo": 0.4, "validation": 0.1, "test": 0.1}},
+  "lora": {"r": 16, "alpha": 32, "dropout": 0.05, "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]},
+  "sft": {"learning_rate": 0.0002, "epochs": 1, "batch_size": 2, "gradient_accumulation_steps": 8, "max_length": 1024},
+  "dpo": {"learning_rate": 0.000005, "epochs": 1, "batch_size": 1, "gradient_accumulation_steps": 8, "max_length": 1024, "beta": 0.1},
+  "generation": {"max_new_tokens": 128, "do_sample": false},
+  "paths": {"v1_adapter": "outputs/v1_sft", "v2_adapter": "outputs/v2_dpo", "runs": "runs"}
+}
