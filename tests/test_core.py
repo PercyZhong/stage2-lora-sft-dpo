@@ -23,10 +23,24 @@ class DataTests(unittest.TestCase):
 
     def test_reject_conflicting_duplicate_and_shared_prompt(self):
         fractions = {"sft": .4, "dpo": .4, "validation": .1, "test": .1}
-        with self.assertRaisesRegex(ValueError, "conflicting duplicate"):
+        with self.assertRaisesRegex(ValueError, "conflicting prompt text"):
             split_rows([row("x"), row("x", "other")], 1, 10, fractions)
         with self.assertRaisesRegex(ValueError, "same prompt"):
             split_rows([row("x", "same"), row("y", "same")], 1, 10, fractions)
+
+    def test_alternative_pairs_same_id_are_deduplicated_independent_of_order(self):
+        data = [row(str(i)) for i in range(20)]
+        alternative = row("0")
+        alternative["chosen"][1]["content"] = "another valid answer"
+        data.append(alternative)
+        fractions = {"sft": .4, "dpo": .4, "validation": .1, "test": .1}
+        forward, counts = split_rows(data, 42, 20, fractions)
+        reversed_input, reversed_counts = split_rows(reversed(data), 42, 20, fractions)
+        self.assertEqual(digest(forward), digest(reversed_input))
+        self.assertEqual(counts, reversed_counts)
+        self.assertEqual(counts["duplicate_ids"], 1)
+        self.assertEqual(counts["duplicate_ids_conflicting"], 1)
+        self.assertEqual(counts["valid_unique"], 20)
 
     def test_reject_mismatched_pair(self):
         bad = row("x")

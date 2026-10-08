@@ -106,7 +106,7 @@ def source_rows(source):
 
 def split_rows(rows, seed, max_records, fractions):
     unique, prompts = {}, {}
-    counts = {"input": 0, "filtered_empty_content": 0, "filtered_identical_answers": 0, "duplicate_ids": 0, "valid_unique": 0, "selected": 0}
+    counts = {"input": 0, "filtered_empty_content": 0, "filtered_identical_answers": 0, "duplicate_ids": 0, "duplicate_ids_conflicting": 0, "valid_unique": 0, "selected": 0}
     for raw in rows:
         counts["input"] += 1
         try:
@@ -119,9 +119,14 @@ def split_rows(rows, seed, max_records, fractions):
             continue
         pid, prompt = row["prompt_id"], row["prompt"]
         if pid in unique:
-            if unique[pid] != row:
-                raise ValueError(f"conflicting duplicate prompt_id: {pid}")
+            if unique[pid]["prompt"] != prompt:
+                raise ValueError(f"conflicting prompt text for prompt_id: {pid}")
             counts["duplicate_ids"] += 1
+            if unique[pid] != row:
+                counts["duplicate_ids_conflicting"] += 1
+                # Select one preference pair per ID without depending on source order.
+                if digest(row) < digest(unique[pid]):
+                    unique[pid] = row
             continue
         if prompt in prompts and prompts[prompt] != pid:
             raise ValueError(f"same prompt under multiple IDs: {pid}, {prompts[prompt]}")
