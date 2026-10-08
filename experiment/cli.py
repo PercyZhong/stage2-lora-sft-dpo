@@ -22,6 +22,19 @@ def local_guard(cfg, adapters=()):
             raise FileNotFoundError(f"local adapter missing adapter_config.json: {folder}")
 
 
+def configure_nccl(supports_p2p_ib=None):
+    """Match Accelerate's launcher behavior on GPUs without P2P/IB support."""
+    if supports_p2p_ib is None:
+        from accelerate.utils import check_cuda_p2p_ib_support
+
+        supports_p2p_ib = check_cuda_p2p_ib_support()
+
+    if not supports_p2p_ib:
+        os.environ["NCCL_P2P_DISABLE"] = "1"
+        os.environ["NCCL_IB_DISABLE"] = "1"
+        print("Disabled NCCL P2P and IB for this GPU configuration")
+
+
 def prepare(cfg, dry):
     if cfg["data"]["source_revision"].startswith("SET_") or cfg["model"]["revision"].startswith("SET_"):
         raise ValueError("set immutable model and dataset source revisions in config before preparation")
@@ -64,7 +77,7 @@ def tokenizer_and_model(cfg):
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
     dtype = getattr(torch, cfg["model"]["dtype"])
-    model = AutoModelForCausalLM.from_pretrained(base, local_files_only=True, torch_dtype=dtype)
+    model = AutoModelForCausalLM.from_pretrained(base, local_files_only=True, dtype=dtype)
     model.config.use_cache = False
     return tok, model
 
@@ -97,6 +110,7 @@ def train(cfg, stage, dry):
     if dry:
         print(json.dumps({"dry_run": True, "stage": stage, "rows": len(rows), "manifest_sha256": digest(manifest)}, indent=2))
         return
+    configure_nccl()
     from datasets import Dataset
     from peft import PeftModel
     from trl import DPOConfig, DPOTrainer, SFTConfig, SFTTrainer

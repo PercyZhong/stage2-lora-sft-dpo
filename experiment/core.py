@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import importlib.metadata
 import json
+import os
 import random
 import subprocess
 from pathlib import Path
@@ -198,7 +199,7 @@ def record(cfg, stage, extra=None):
         gpu = [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]
     except ImportError:
         pass
-    out = {"stage": stage, "config": cfg, "git_commit": commit, "versions": versions, "gpu": gpu, "adapter_paths": {k: cfg["paths"][k] for k in ("v1_adapter", "v2_adapter")}}
+    out = {"stage": stage, "config": cfg, "git_commit": commit, "versions": versions, "gpu": gpu, "nccl_env": {k: os.environ.get(k) for k in ("NCCL_P2P_DISABLE", "NCCL_IB_DISABLE")}, "adapter_paths": {k: cfg["paths"][k] for k in ("v1_adapter", "v2_adapter")}}
     manifest = Path(cfg["data"]["prepared_dir"]) / "manifest.json"
     out["manifest_sha256"] = digest(manifest) if manifest.exists() else None
     out.update(extra or {})
