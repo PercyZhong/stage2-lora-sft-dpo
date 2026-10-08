@@ -37,3 +37,29 @@ The training entry points follow Accelerate's launcher behavior for GPU setups w
 Verified on 2026-10-08 with Python 3.11, one RTX 4090, PyTorch 2.5.1+cu121, Transformers 4.57.6, TRL 0.26.0, PEFT 0.21.2 and Accelerate 1.15.0. Both a 40-row smoke run and the configured 4,000-row experiment completed offline. The full split contained 1,600 SFT, 1,600 DPO, 400 validation and 400 final-test prompts. SFT completed 100 steps, DPO completed 200 steps, and base/v1/v2 evaluation used the same 400 test IDs with SHA256 `2937bfed632b4afe805acbb8f64f8a3570ea23c2bc4cc6c58c0e700000ccb344`.
 
 The observed mean generated lengths were 112.89 tokens for base, 119.78 for v1 and 119.39 for v2. These are descriptive pipeline outputs, not model-quality scores. Local adapters, per-sample generations, run records and `summary.csv` remain ignored by Git.
+
+## Supplemental quality evaluation
+
+This workflow is read-only with respect to the prepared splits, original `runs/eval_*` files and v1/v2 adapters. It verifies their hashes before and after every stage and writes new artifacts only under ignored `runs/quality_eval/`. Run it on Linux with the existing offline model, data and adapters; do not retrain:
+
+```bash
+export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 CUDA_VISIBLE_DEVICES=0
+python -m experiment.quality_eval check --config config/local.json
+python -m experiment.quality_eval preference --config config/local.json
+python -m experiment.quality_eval blind-pack --config config/local.json --seed 20261008 --sample-size 60 --max-new-tokens 512
+```
+
+On a shared host, replace GPU `0` with the single GPU assigned to you. A command refuses to overwrite its own existing output. After an interrupted run, repeat that command with `--resume`; resume succeeds only when the config and protected input hashes still match.
+
+`preference_rows.csv` records chosen/rejected assistant-token counts, summed log probabilities, per-answer-token means, `raw_margin` and `mean_margin` for base/v1/v2. Prompt and padding tokens are excluded. Chat-template assistant terminators and EOS are included consistently. Inputs over the 1024-token training context are excluded as a whole prompt pair across all versions. `preference_summary.json` and `.csv` report positive, zero and mean margins with valid and excluded N. Summed margins have answer-length bias; normalized margins still measure preference-label likelihood rather than complete response quality.
+
+The blind pack uniformly samples 60 IDs from the verified 400-ID test order with `random.Random(20261008).sample`, then regenerates each prompt for all three versions with deterministic decoding and `max_new_tokens=512`. Version outputs go to `generated_512/`. `blind_sheet.csv` exposes only randomized A/B/C responses; `blind_key.json` contains the separate mapping. Do not open the key before scoring.
+
+For every row, fill `A_vs_B` with `A`, `B`, or `tie`; `A_vs_C` with `A`, `C`, or `tie`; and `B_vs_C` with `B`, `C`, or `tie`. Add a nonempty `reason` based on instruction following, correctness, coherence, repetition and unsupported claims. Do not edit IDs, prompts or answers. Incomplete or illegal scores are rejected. After all 60 rows are scored:
+
+```bash
+python -m experiment.quality_eval blind-summarize --config config/local.json --scores runs/quality_eval/blind_sheet.csv
+python -m experiment.quality_eval report --config config/local.json
+```
+
+The blind summary reports base↔v1, v1↔v2 and base↔v2 wins/ties/losses plus a 95% Wilson interval for the first model's win fraction among non-tied paired judgments. This is one rater, one pass, 60 internally held-out prompts, and deterministic decoding; even 512 tokens can truncate. The test set comes from a prompt-disjoint internal split of UltraFeedback Binarized `train_prefs`, not an external benchmark. Preference accuracy, generated length and this small blind sample must not be presented as broad proof of model quality.
