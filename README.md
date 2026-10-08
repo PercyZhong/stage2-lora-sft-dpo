@@ -13,19 +13,27 @@ python -m experiment.cli check --config config/local.json
 python -m experiment.cli prepare --config config/local.json --dry-run
 python -m experiment.cli prepare --config config/local.json
 python -m experiment.cli sft --config config/local.json --dry-run
-python -m experiment.cli sft --config config/local.json
+CUDA_VISIBLE_DEVICES=0 NCCL_P2P_DISABLE=1 NCCL_IB_DISABLE=1 python -m experiment.cli sft --config config/local.json
 python -m experiment.cli dpo --config config/local.json --dry-run
-python -m experiment.cli dpo --config config/local.json
-python -m experiment.cli evaluate --config config/local.json --version base
-python -m experiment.cli evaluate --config config/local.json --version v1
-python -m experiment.cli evaluate --config config/local.json --version v2
+CUDA_VISIBLE_DEVICES=0 NCCL_P2P_DISABLE=1 NCCL_IB_DISABLE=1 python -m experiment.cli dpo --config config/local.json
+CUDA_VISIBLE_DEVICES=0 python -m experiment.cli evaluate --config config/local.json --version base
+CUDA_VISIBLE_DEVICES=0 python -m experiment.cli evaluate --config config/local.json --version v1
+CUDA_VISIBLE_DEVICES=0 python -m experiment.cli evaluate --config config/local.json --version v2
 python -m experiment.cli summarize --config config/local.json
 ```
+
+On a shared server, replace `0` with the GPU assigned to you. These environment variables affect only the launched process; do not change drivers, CUDA, system services or other users' processes. Keeping one RTX 40-series GPU visible also avoids unsupported NCCL P2P/IB initialization across multiple consumer GPUs.
 
 Input: a local `datasets.save_to_disk` directory or JSONL with `prompt_id`, `chosen`, `rejected`; responses are `[{role:"user",content:"..."},{role:"assistant",content:"..."}]`. Preparation repartitions **all** supplied source splits by prompt ID into distinct SFT, DPO, validation and final test partitions. Do not use an original source test split again. The manifest records source metadata/hash, counts, seed, ID lists and SHA256s. For alternate preference pairs with the same ID and prompt, it retains the pair with the lowest row SHA256 independent of source order and counts the resolved duplicates. Conflicting prompt text for one ID and shared prompts across IDs are rejected. All prepared data, adapters, checkpoints and run results stay local.
 Rows with empty prompt/answer content or identical chosen and rejected answers are excluded and counted as `filtered_empty_content` or `filtered_identical_answers` in the dry-run output and manifest; malformed conversations still raise a validation error.
 
 SFT uses only chosen completions and completion-only loss. DPO uses paired chosen/rejected answers for the same prompt and explicitly loads a frozen v1 reference. The final test prompts and deterministic generation parameters are identical for base/v1/v2. Summary length statistics are descriptive; no quality claim follows from them. Inspect held-out answers or use a separate blinded judge. Training preference accuracy is not final effect.
 
-All model loads use local paths and `local_files_only=True`; Linux can also set `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1`. Run records include config, dependency versions, Git SHA, model revision, GPU, manifest and adapter paths. API implementation targets TRL 0.26.0 and PEFT 0.15+ based on [SFT](https://huggingface.co/docs/trl/v0.26.0/en/sft_trainer), [DPO](https://huggingface.co/docs/trl/v0.26.0/en/dpo_trainer) and [PEFT](https://huggingface.co/docs/peft/en/package_reference/peft_model) docs. **待 Linux smoke test**: verify installed APIs, tokenizer template, GPU memory and one tiny train/eval run before the full experiment.
+All model loads use local paths and `local_files_only=True`; Linux can also set `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1`. Run records include config, dependency versions, Git SHA, model revision, GPU, manifest and adapter paths. API implementation targets TRL 0.26.0 and PEFT 0.15+ based on [SFT](https://huggingface.co/docs/trl/v0.26.0/en/sft_trainer), [DPO](https://huggingface.co/docs/trl/v0.26.0/en/dpo_trainer) and [PEFT](https://huggingface.co/docs/peft/en/package_reference/peft_model) docs.
 The training entry points follow Accelerate's launcher behavior for GPU setups without NCCL P2P/IB support: they set `NCCL_P2P_DISABLE=1` and `NCCL_IB_DISABLE=1` before initializing the trainer, and record both values in run metadata.
+
+## Linux verification
+
+Verified on 2026-10-08 with Python 3.11, one RTX 4090, PyTorch 2.5.1+cu121, Transformers 4.57.6, TRL 0.26.0, PEFT 0.21.2 and Accelerate 1.15.0. Both a 40-row smoke run and the configured 4,000-row experiment completed offline. The full split contained 1,600 SFT, 1,600 DPO, 400 validation and 400 final-test prompts. SFT completed 100 steps, DPO completed 200 steps, and base/v1/v2 evaluation used the same 400 test IDs with SHA256 `2937bfed632b4afe805acbb8f64f8a3570ea23c2bc4cc6c58c0e700000ccb344`.
+
+The observed mean generated lengths were 112.89 tokens for base, 119.78 for v1 and 119.39 for v2. These are descriptive pipeline outputs, not model-quality scores. Local adapters, per-sample generations, run records and `summary.csv` remain ignored by Git.
