@@ -13,6 +13,10 @@ class UnusablePreference(ValueError):
     """A well-formed row that cannot express a chosen/rejected preference."""
 
 
+class EmptyContent(UnusablePreference):
+    """A preference row with an empty prompt or answer."""
+
+
 def digest(value):
     if isinstance(value, Path):
         h = hashlib.sha256()
@@ -73,8 +77,10 @@ def validate_row(row):
         messages = row.get(key)
         if not isinstance(messages, list) or len(messages) != 2 or [m.get("role") for m in messages if isinstance(m, dict)] != ["user", "assistant"]:
             raise ValueError(f"{pid}: {key} must be user/assistant messages")
-        if any(not isinstance(m.get("content"), str) or not m["content"].strip() for m in messages):
-            raise ValueError(f"{pid}: empty content")
+        if any(not isinstance(m.get("content"), str) for m in messages):
+            raise ValueError(f"{pid}: non-string content")
+        if any(not m["content"].strip() for m in messages):
+            raise EmptyContent(f"{pid}: empty content")
     if row["chosen"][0]["content"] != row["rejected"][0]["content"]:
         raise ValueError(f"{pid}: chosen/rejected prompts differ")
     if row["chosen"][1]["content"].strip() == row["rejected"][1]["content"].strip():
@@ -100,11 +106,14 @@ def source_rows(source):
 
 def split_rows(rows, seed, max_records, fractions):
     unique, prompts = {}, {}
-    counts = {"input": 0, "filtered_identical_answers": 0, "duplicate_ids": 0, "valid_unique": 0, "selected": 0}
+    counts = {"input": 0, "filtered_empty_content": 0, "filtered_identical_answers": 0, "duplicate_ids": 0, "valid_unique": 0, "selected": 0}
     for raw in rows:
         counts["input"] += 1
         try:
             row = validate_row(raw)
+        except EmptyContent:
+            counts["filtered_empty_content"] += 1
+            continue
         except UnusablePreference:
             counts["filtered_identical_answers"] += 1
             continue

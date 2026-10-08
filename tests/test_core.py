@@ -46,6 +46,26 @@ class DataTests(unittest.TestCase):
         self.assertEqual(counts["valid_unique"], 20)
         self.assertNotIn("bad", {r["prompt_id"] for part in partitions.values() for r in part})
 
+    def test_empty_content_is_counted_and_excluded(self):
+        data = [row(str(i)) for i in range(20)]
+        empty_answer = row("empty_answer")
+        empty_answer["chosen"][1]["content"] = "  "
+        empty_prompt = row("empty_prompt")
+        empty_prompt["chosen"][0]["content"] = " "
+        data.extend((empty_answer, empty_prompt))
+        fractions = {"sft": .4, "dpo": .4, "validation": .1, "test": .1}
+        partitions, counts = split_rows(data, 42, 20, fractions)
+        self.assertEqual(counts["input"], 22)
+        self.assertEqual(counts["filtered_empty_content"], 2)
+        self.assertEqual(counts["valid_unique"], 20)
+        self.assertEqual(sum(map(len, partitions.values())), 20)
+
+    def test_non_string_content_still_fails(self):
+        bad = row("bad")
+        bad["chosen"][1]["content"] = None
+        with self.assertRaisesRegex(ValueError, "non-string content"):
+            validate_row(bad)
+
     def test_config_rejects_bad_fractions(self):
         import json
         original = json.loads((Path(__file__).parent.parent / "config/experiment.json").read_text(encoding="utf-8"))
