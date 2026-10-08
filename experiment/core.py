@@ -9,6 +9,10 @@ import subprocess
 from pathlib import Path
 
 
+class UnusablePreference(ValueError):
+    """A well-formed row that cannot express a chosen/rejected preference."""
+
+
 def digest(value):
     if isinstance(value, Path):
         h = hashlib.sha256()
@@ -73,8 +77,8 @@ def validate_row(row):
             raise ValueError(f"{pid}: empty content")
     if row["chosen"][0]["content"] != row["rejected"][0]["content"]:
         raise ValueError(f"{pid}: chosen/rejected prompts differ")
-    if row["chosen"][1]["content"] == row["rejected"][1]["content"]:
-        raise ValueError(f"{pid}: identical answers")
+    if row["chosen"][1]["content"].strip() == row["rejected"][1]["content"].strip():
+        raise UnusablePreference(f"{pid}: identical answers")
     return {"prompt_id": pid, "prompt": row["chosen"][0]["content"], "chosen": row["chosen"][1]["content"], "rejected": row["rejected"][1]["content"]}
 
 
@@ -96,10 +100,14 @@ def source_rows(source):
 
 def split_rows(rows, seed, max_records, fractions):
     unique, prompts = {}, {}
-    counts = {"input": 0, "duplicate_ids": 0, "valid_unique": 0, "selected": 0}
+    counts = {"input": 0, "filtered_identical_answers": 0, "duplicate_ids": 0, "valid_unique": 0, "selected": 0}
     for raw in rows:
         counts["input"] += 1
-        row = validate_row(raw)
+        try:
+            row = validate_row(raw)
+        except UnusablePreference:
+            counts["filtered_identical_answers"] += 1
+            continue
         pid, prompt = row["prompt_id"], row["prompt"]
         if pid in unique:
             if unique[pid] != row:

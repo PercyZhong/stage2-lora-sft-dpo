@@ -34,6 +34,18 @@ class DataTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "prompts differ"):
             validate_row(bad)
 
+    def test_identical_answers_are_counted_and_excluded(self):
+        data = [row(str(i)) for i in range(20)]
+        bad = row("bad")
+        bad["rejected"][1]["content"] = " yes "
+        data.insert(0, bad)
+        fractions = {"sft": .4, "dpo": .4, "validation": .1, "test": .1}
+        partitions, counts = split_rows(data, 42, 20, fractions)
+        self.assertEqual(counts["input"], 21)
+        self.assertEqual(counts["filtered_identical_answers"], 1)
+        self.assertEqual(counts["valid_unique"], 20)
+        self.assertNotIn("bad", {r["prompt_id"] for part in partitions.values() for r in part})
+
     def test_config_rejects_bad_fractions(self):
         import json
         original = json.loads((Path(__file__).parent.parent / "config/experiment.json").read_text(encoding="utf-8"))

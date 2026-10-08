@@ -23,6 +23,7 @@ python -m experiment.cli summarize --config config/local.json
 ```
 
 Input: a local `datasets.save_to_disk` directory or JSONL with `prompt_id`, `chosen`, `rejected`; responses are `[{role:"user",content:"..."},{role:"assistant",content:"..."}]`. Preparation repartitions **all** supplied source splits by prompt ID into distinct SFT, DPO, validation and final test partitions. Do not use an original source test split again. The manifest records source metadata/hash, counts, seed, ID lists and SHA256s. Conflicting duplicate IDs and shared prompts across IDs are rejected. All prepared data, adapters, checkpoints and run results stay local.
+Rows with identical chosen and rejected answers are excluded and counted as `filtered_identical_answers` in the dry-run output and manifest; malformed conversations still raise a validation error.
 
 SFT uses only chosen completions and completion-only loss. DPO uses paired chosen/rejected answers for the same prompt and explicitly loads a frozen v1 reference. The final test prompts and deterministic generation parameters are identical for base/v1/v2. Summary length statistics are descriptive; no quality claim follows from them. Inspect held-out answers or use a separate blinded judge. Training preference accuracy is not final effect.
 
