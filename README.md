@@ -4,20 +4,22 @@ Lineage: Qwen/Qwen2.5-0.5B base → v1 LoRA-SFT → v2 LoRA-DPO. DPO's frozen re
 
 ## Windows → GitHub → Linux
 
-Edit, inspect, test, commit and push on Windows. Do not download models/data or install training packages here. Clone on a Linux Python 3.11 GPU host, install `requirements-linux.txt`, put model and UltraFeedback Binarized snapshots at local paths, update `config/experiment.json` (including immutable source revisions), then:
+Edit, inspect, test, commit and push on Windows. Do not download models/data or install training packages here. Clone on a Linux Python 3.11 GPU host and install `requirements-linux.txt`.
+
+On Linux with network access, `unset HF_HUB_OFFLINE TRANSFORMERS_OFFLINE` and run `python scripts/fetch_assets.py`. This downloads a pinned base model snapshot, saves only the dataset's paired `train_prefs` split with `save_to_disk`, and writes ignored `config/local.json` with actual local paths and repository commit SHAs. The other dataset splits are not input to this experiment. The tracked template remains unchanged. After downloading, set `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1` for training and evaluation. Then:
 
 ```bash
-python -m experiment.cli check --config config/experiment.json
-python -m experiment.cli prepare --config config/experiment.json --dry-run
-python -m experiment.cli prepare --config config/experiment.json
-python -m experiment.cli sft --config config/experiment.json --dry-run
-python -m experiment.cli sft --config config/experiment.json
-python -m experiment.cli dpo --config config/experiment.json --dry-run
-python -m experiment.cli dpo --config config/experiment.json
-python -m experiment.cli evaluate --config config/experiment.json --version base
-python -m experiment.cli evaluate --config config/experiment.json --version v1
-python -m experiment.cli evaluate --config config/experiment.json --version v2
-python -m experiment.cli summarize --config config/experiment.json
+python -m experiment.cli check --config config/local.json
+python -m experiment.cli prepare --config config/local.json --dry-run
+python -m experiment.cli prepare --config config/local.json
+python -m experiment.cli sft --config config/local.json --dry-run
+python -m experiment.cli sft --config config/local.json
+python -m experiment.cli dpo --config config/local.json --dry-run
+python -m experiment.cli dpo --config config/local.json
+python -m experiment.cli evaluate --config config/local.json --version base
+python -m experiment.cli evaluate --config config/local.json --version v1
+python -m experiment.cli evaluate --config config/local.json --version v2
+python -m experiment.cli summarize --config config/local.json
 ```
 
 Input: a local `datasets.save_to_disk` directory or JSONL with `prompt_id`, `chosen`, `rejected`; responses are `[{role:"user",content:"..."},{role:"assistant",content:"..."}]`. Preparation repartitions **all** supplied source splits by prompt ID into distinct SFT, DPO, validation and final test partitions. Do not use an original source test split again. The manifest records source metadata/hash, counts, seed, ID lists and SHA256s. Conflicting duplicate IDs and shared prompts across IDs are rejected. All prepared data, adapters, checkpoints and run results stay local.

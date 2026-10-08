@@ -220,6 +220,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Local experiment artifacts
+config/local.json
 models/
 data/
 runs/
