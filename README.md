@@ -65,3 +65,13 @@ python -m experiment.quality_eval report --config config/local.json
 The blind summary reports base↔v1, v1↔v2 and base↔v2 wins/ties/losses plus a 95% Wilson interval for the first model's win fraction among non-tied paired judgments. This is one rater, one pass, 60 internally held-out prompts, and deterministic decoding; even 512 tokens can truncate. The test set comes from a prompt-disjoint internal split of UltraFeedback Binarized `train_prefs`, not an external benchmark. Preference accuracy, generated length and this small blind sample must not be presented as broad proof of model quality.
 
 For a three-model-judge variant, keep `blind_key.json` hidden until ChatGPT Work, DeepSeek and Qwen have each completed all 60 anonymous rows. `scripts/api_blind_judge.py` produces validated DeepSeek or Qwen score sheets using API keys from environment variables and supports `--resume`. After all three sheets are fixed, copy the blind key locally and run `python scripts/summarize_multi_judge.py`. It reports every judge separately, two-of-three majority outcomes, no-consensus cases, pairwise judge agreement and Fleiss κ under `runs/quality_eval/multi_judge/`. These judges are not independent humans; they may share data and style biases, and the Qwen judge can have model-family bias.
+
+## Stage 2 evidence archive
+
+The tracked `scripts/archive_stage2.py` script is read-only with respect to experiment inputs. On Linux, after pulling this commit and ensuring the existing prepared test, original evaluation JSONL files, and quality-evaluation `state.json` are present, generate the final archive with:
+
+```bash
+python scripts/archive_stage2.py --root . --output stage2_phase2_evidence.zip
+```
+
+It verifies each included file against `state.json` before writing the ZIP. The archive contains `data/prepared/test.jsonl`, `runs/eval_base.jsonl`, `runs/eval_v1.jsonl`, `runs/eval_v2.jsonl`, `runs/quality_eval/state.json`, and `stage2_phase2_report.md`; it does not include model weights, the original complete dataset, or credentials. The report records the DeepSeek/Qwen metadata blind-sheet hash mismatch as an unresolved byte-level provenance difference when the original bytes cannot be found. Do not claim this command was run on Linux unless it was actually executed there.
