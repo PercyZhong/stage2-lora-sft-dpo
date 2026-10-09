@@ -1,0 +1,240 @@
+{
+  "provenance": {
+    "sample_ids": "bd2cf806988dead9a5655c86ac06a4fd7e63bff2fdf4b0f0666f09a76d46bd2d",
+    "blind_key": "d912da955a12b01df5db30488ef71679541dee0c8188620f667a20922b033048",
+    "chatgpt_work": "c40670b189a7e36c14b7e16a26abce883718ab8a713df50fe4de9c4fb58e5764",
+    "deepseek": "e2be6fc3ec68876ff36384865007b226253d948207a3b60000f7676789f17421",
+    "qwen": "a09e02b68dfe4dbce1b0bf8738990a458e738e7c0f054c18b834cd2aa283affa"
+  },
+  "sample_size": 60,
+  "judges": [
+    "chatgpt_work",
+    "deepseek",
+    "qwen"
+  ],
+  "individual": {
+    "chatgpt_work": {
+      "base_vs_v1": {
+        "first_wins": 23,
+        "ties": 2,
+        "first_losses": 35,
+        "n": 60
+      },
+      "v1_vs_v2": {
+        "first_wins": 10,
+        "ties": 27,
+        "first_losses": 23,
+        "n": 60
+      },
+      "base_vs_v2": {
+        "first_wins": 24,
+        "ties": 1,
+        "first_losses": 35,
+        "n": 60
+      }
+    },
+    "deepseek": {
+      "base_vs_v1": {
+        "first_wins": 21,
+        "ties": 2,
+        "first_losses": 37,
+        "n": 60
+      },
+      "v1_vs_v2": {
+        "first_wins": 19,
+        "ties": 23,
+        "first_losses": 18,
+        "n": 60
+      },
+      "base_vs_v2": {
+        "first_wins": 23,
+        "ties": 3,
+        "first_losses": 34,
+        "n": 60
+      }
+    },
+    "qwen": {
+      "base_vs_v1": {
+        "first_wins": 17,
+        "ties": 7,
+        "first_losses": 36,
+        "n": 60
+      },
+      "v1_vs_v2": {
+        "first_wins": 8,
+        "ties": 41,
+        "first_losses": 11,
+        "n": 60
+      },
+      "base_vs_v2": {
+        "first_wins": 18,
+        "ties": 7,
+        "first_losses": 35,
+        "n": 60
+      }
+    }
+  },
+  "majority_consensus": {
+    "base_vs_v1": {
+      "first_wins": 20,
+      "ties": 1,
+      "first_losses": 36,
+      "no_consensus": 3,
+      "n": 60,
+      "decisive_n": 56,
+      "first_win_fraction_among_decisive": 0.35714285714285715,
+      "wilson_95_ci_among_decisive": [
+        0.24456571707649905,
+        0.4880611219860049
+      ]
+    },
+    "v1_vs_v2": {
+      "first_wins": 10,
+      "ties": 30,
+      "first_losses": 14,
+      "no_consensus": 6,
+      "n": 60,
+      "decisive_n": 24,
+      "first_win_fraction_among_decisive": 0.4166666666666667,
+      "wilson_95_ci_among_decisive": [
+        0.24467602609811764,
+        0.6116533413477124
+      ]
+    },
+    "base_vs_v2": {
+      "first_wins": 19,
+      "ties": 1,
+      "first_losses": 35,
+      "no_consensus": 5,
+      "n": 60,
+      "decisive_n": 54,
+      "first_win_fraction_among_decisive": 0.35185185185185186,
+      "wilson_95_ci_among_decisive": [
+        0.2382301110811473,
+        0.4851516927976369
+      ]
+    }
+  },
+  "agreement_overall": {
+    "items": 180,
+    "unanimous": 92,
+    "unanimous_fraction": 0.5111111111111111,
+    "two_of_three_majority": 74,
+    "no_consensus": 14,
+    "pairwise": {
+      "chatgpt_work_vs_deepseek": {
+        "agree": 118,
+        "n": 180,
+        "fraction": 0.6555555555555556
+      },
+      "chatgpt_work_vs_qwen": {
+        "agree": 107,
+        "n": 180,
+        "fraction": 0.5944444444444444
+      },
+      "deepseek_vs_qwen": {
+        "agree": 125,
+        "n": 180,
+        "fraction": 0.6944444444444444
+      }
+    },
+    "fleiss_kappa_three_categories": 0.438011458869669,
+    "fleiss_categories": [
+      "first",
+      "tie",
+      "second"
+    ]
+  },
+  "agreement_by_pair": {
+    "base_vs_v1": {
+      "items": 60,
+      "unanimous": 32,
+      "unanimous_fraction": 0.5333333333333333,
+      "two_of_three_majority": 25,
+      "no_consensus": 3,
+      "pairwise": {
+        "chatgpt_work_vs_deepseek": {
+          "agree": 41,
+          "n": 60,
+          "fraction": 0.6833333333333333
+        },
+        "chatgpt_work_vs_qwen": {
+          "agree": 34,
+          "n": 60,
+          "fraction": 0.5666666666666667
+        },
+        "deepseek_vs_qwen": {
+          "agree": 46,
+          "n": 60,
+          "fraction": 0.7666666666666667
+        }
+      },
+      "fleiss_kappa_three_categories": 0.37137445246833206,
+      "fleiss_categories": [
+        "first",
+        "tie",
+        "second"
+      ]
+    },
+    "v1_vs_v2": {
+      "items": 60,
+      "unanimous": 27,
+      "unanimous_fraction": 0.45,
+      "two_of_three_majority": 27,
+      "no_consensus": 6,
+      "pairwise": {
+        "chatgpt_work_vs_deepseek": {
+          "agree": 37,
+          "n": 60,
+          "fraction": 0.6166666666666667
+        },
+        "chatgpt_work_vs_qwen": {
+          "agree": 37,
+          "n": 60,
+          "fraction": 0.6166666666666667
+        },
+        "deepseek_vs_qwen": {
+          "agree": 34,
+          "n": 60,
+          "fraction": 0.5666666666666667
+        }
+      },
+      "fleiss_kappa_three_categories": 0.35348697994612394,
+      "fleiss_categories": [
+        "first",
+        "tie",
+        "second"
+      ]
+    },
+    "base_vs_v2": {
+      "items": 60,
+      "unanimous": 33,
+      "unanimous_fraction": 0.55,
+      "two_of_three_majority": 22,
+      "no_consensus": 5,
+      "pairwise": {
+        "chatgpt_work_vs_deepseek": {
+          "agree": 40,
+          "n": 60,
+          "fraction": 0.6666666666666666
+        },
+        "chatgpt_work_vs_qwen": {
+          "agree": 36,
+          "n": 60,
+          "fraction": 0.6
+        },
+        "deepseek_vs_qwen": {
+          "agree": 45,
+          "n": 60,
+          "fraction": 0.75
+        }
+      },
+      "fleiss_kappa_three_categories": 0.383919248172642,
+      "fleiss_categories": [
+        "first",
+        "tie",
+        "second"
+      ]
+    }
+  }
+}

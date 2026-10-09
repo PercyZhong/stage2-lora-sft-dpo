@@ -1,0 +1,13 @@
+{
+  "provider": "qwen",
+  "model": "qwen-plus",
+  "endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+  "input": "runs\\quality_eval\\blind_sheet.csv",
+  "input_sha256": "9857f067f3d817fba0b560e28a38fdfdacf14a237df474295ec7622ee3c47283",
+  "rows": 60,
+  "judge_prompt_sha256": "05f04153d534074f4faecddd4f014085756d0aad0c1cf826713630471c66cdb3",
+  "request_strategy": "strict json_schema with enum correction retries; thinking disabled",
+  "scores_sha256": "a09e02b68dfe4dbce1b0bf8738990a458e738e7c0f054c18b834cd2aa283affa",
+  "audit_sha256": "00d46ada6bbae692f10e57d52b397ab410b0de620c6da08489be5c4c999645c6",
+  "completed_at_utc": "2026-10-09T02:22:47.444027+00:00"
+}

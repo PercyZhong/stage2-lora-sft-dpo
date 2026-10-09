@@ -223,7 +223,9 @@ __marimo__/
 config/local.json
 models/
 data/
-runs/
+# Keep quality-evaluation evidence reproducible while excluding transfer bundles
+# and any other local run directories by default.
+runs/*
 outputs/
 checkpoints/
 **/checkpoint-*/
@@ -242,3 +244,7 @@ checkpoints/
 *.tgz
 *.7z
 *.zst
+
+# Publish the quality-evaluation evidence, including JSONL API responses.
+!runs/quality_eval/
+!runs/quality_eval/**

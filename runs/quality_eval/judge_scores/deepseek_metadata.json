@@ -1,0 +1,13 @@
+{
+  "provider": "deepseek",
+  "model": "deepseek-flash",
+  "endpoint": "https://api.deepseek.com/chat/completions",
+  "input": "runs\\quality_eval\\blind_sheet.csv",
+  "input_sha256": "9857f067f3d817fba0b560e28a38fdfdacf14a237df474295ec7622ee3c47283",
+  "rows": 60,
+  "judge_prompt_sha256": "05f04153d534074f4faecddd4f014085756d0aad0c1cf826713630471c66cdb3",
+  "request_strategy": "json_object first; DeepSeek plain-json fallback on retry; thinking disabled",
+  "scores_sha256": "e2be6fc3ec68876ff36384865007b226253d948207a3b60000f7676789f17421",
+  "audit_sha256": "f5266762e698d078100fbf3a0e0cb0e1008359bdcfb73958a1519fc2e2230862",
+  "completed_at_utc": "2026-10-09T01:58:36.722991+00:00"
+}
