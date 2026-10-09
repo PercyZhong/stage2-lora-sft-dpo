@@ -9,6 +9,7 @@ from scripts.api_blind_judge import (
     canonical_input_hash,
     endpoint,
     extract_json,
+    metadata_compatible,
     read_sheet,
     request_payload,
     retry_payload,
@@ -95,7 +96,18 @@ class ApiBlindJudgeTests(unittest.TestCase):
         self.assertEqual(payload["thinking"], {"type": "disabled"})
         self.assertIn("response_format", retry_payload("deepseek", payload, 1))
         self.assertNotIn("response_format", retry_payload("deepseek", payload, 2))
-        self.assertIn("response_format", retry_payload("qwen", request_payload("qwen", "qwen-plus", rows(1)[0]), 2))
+        qwen = request_payload("qwen", "qwen-plus", rows(1)[0])
+        schema = qwen["response_format"]["json_schema"]["schema"]
+        self.assertEqual(schema["properties"]["A_vs_C"]["enum"], ["A", "C", "tie"])
+        retried = retry_payload("qwen", qwen, 2)
+        self.assertEqual(retried["response_format"]["type"], "json_schema")
+        self.assertEqual(len(retried["messages"]), 3)
+
+    def test_resume_metadata_allows_request_strategy_upgrade_only(self):
+        old = {"provider": "qwen", "model": "qwen-plus", "endpoint": "url", "input_sha256": "hash", "rows": 60, "request_strategy": "old"}
+        new = {**old, "request_strategy": "new"}
+        self.assertTrue(metadata_compatible(old, new))
+        self.assertFalse(metadata_compatible(old, {**new, "input_sha256": "changed"}))
 
 
 if __name__ == "__main__":

@@ -110,6 +110,24 @@ def request_payload(provider, model, row):
     }
     if provider == "qwen":
         payload["enable_thinking"] = False
+        payload["response_format"] = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "blind_pairwise_score",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "A_vs_B": {"type": "string", "enum": ["A", "B", "tie"]},
+                        "A_vs_C": {"type": "string", "enum": ["A", "C", "tie"]},
+                        "B_vs_C": {"type": "string", "enum": ["B", "C", "tie"]},
+                        "reason": {"type": "string", "minLength": 1},
+                    },
+                    "required": list(SCORE_FIELDS),
+                    "additionalProperties": False,
+                },
+            },
+        }
     elif provider == "deepseek":
         payload["thinking"] = {"type": "disabled"}
     return payload
@@ -120,7 +138,17 @@ def retry_payload(provider, payload, attempt):
     value = json.loads(json.dumps(payload, ensure_ascii=False))
     if provider == "deepseek" and attempt > 1:
         value.pop("response_format", None)
+    elif provider == "qwen" and attempt > 1:
+        value["messages"].append({
+            "role": "user",
+            "content": "务必严格遵守枚举：A_vs_B 只能是 A/B/tie；A_vs_C 只能是 A/C/tie；B_vs_C 只能是 B/C/tie。只输出符合 schema 的 json。",
+        })
     return value
+
+
+def metadata_compatible(existing, current):
+    stable_fields = ("provider", "model", "endpoint", "input_sha256", "rows")
+    return all(existing.get(field) == current.get(field) for field in stable_fields)
 
 
 def extract_json(text):
@@ -247,7 +275,11 @@ def score_sheet(args):
         "input_sha256": input_hash,
         "rows": len(rows),
         "judge_prompt_sha256": hashlib.sha256(SYSTEM_PROMPT.encode("utf-8")).hexdigest(),
-        "request_strategy": "json_object first; DeepSeek plain-json fallback on retry; thinking disabled",
+        "request_strategy": (
+            "strict json_schema with enum correction retries; thinking disabled"
+            if args.provider == "qwen"
+            else "json_object first; plain-json fallback on retry; thinking disabled"
+        ),
     }
 
     if args.dry_run:
@@ -270,8 +302,9 @@ def score_sheet(args):
         else:
             if not args.resume:
                 raise FileExistsError(f"metadata exists; use --resume: {metadata_path}")
-            if existing_metadata != metadata:
+            if not metadata_compatible(existing_metadata, metadata):
                 raise ValueError("resume metadata differs from current provider/model/input")
+            write_json(metadata_path, metadata)
     else:
         if audit_path.exists():
             raise FileExistsError("audit output exists without metadata; refusing to continue")
