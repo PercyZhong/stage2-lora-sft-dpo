@@ -10,6 +10,8 @@ from scripts.api_blind_judge import (
     endpoint,
     extract_json,
     read_sheet,
+    request_payload,
+    retry_payload,
     validate_resume,
     validate_score,
     write_scores,
@@ -87,6 +89,13 @@ class ApiBlindJudgeTests(unittest.TestCase):
         base = "https://example.test/compatible-mode/v1"
         self.assertEqual(endpoint(base), base + "/chat/completions")
         self.assertEqual(endpoint(base + "/chat/completions"), base + "/chat/completions")
+
+    def test_deepseek_retry_disables_thinking_and_drops_json_mode(self):
+        payload = request_payload("deepseek", "deepseek-flash", rows(1)[0])
+        self.assertEqual(payload["thinking"], {"type": "disabled"})
+        self.assertIn("response_format", retry_payload("deepseek", payload, 1))
+        self.assertNotIn("response_format", retry_payload("deepseek", payload, 2))
+        self.assertIn("response_format", retry_payload("qwen", request_payload("qwen", "qwen-plus", rows(1)[0]), 2))
 
 
 if __name__ == "__main__":

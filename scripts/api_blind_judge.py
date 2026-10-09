@@ -54,7 +54,7 @@ SYSTEM_PROMPT = """你是严格、独立的匿名回答质量评审员。你看�
 
 不要因为回答更长而偏好它。没有可靠依据区分时选择 tie。不要参考训练偏好标签，因为不会提供这些标签。
 
-只输出一个 JSON 对象，字段必须恰好为：
+只输出一个 json 对象，不要输出 Markdown 代码块或其他文字。字段必须恰好为：
 {"A_vs_B":"A或B或tie","A_vs_C":"A或C或tie","B_vs_C":"B或C或tie","reason":"简洁但具体的综合理由"}
 """
 
@@ -110,7 +110,17 @@ def request_payload(provider, model, row):
     }
     if provider == "qwen":
         payload["enable_thinking"] = False
+    elif provider == "deepseek":
+        payload["thinking"] = {"type": "disabled"}
     return payload
+
+
+def retry_payload(provider, payload, attempt):
+    """Use plain output after an empty/invalid DeepSeek JSON-mode response."""
+    value = json.loads(json.dumps(payload, ensure_ascii=False))
+    if provider == "deepseek" and attempt > 1:
+        value.pop("response_format", None)
+    return value
 
 
 def extract_json(text):
@@ -164,6 +174,9 @@ def call_api(url, api_key, payload, timeout):
         content = parsed["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as error:
         raise ValueError("API response lacks choices[0].message.content") from error
+    if not isinstance(content, str) or not content.strip():
+        finish_reason = parsed.get("choices", [{}])[0].get("finish_reason")
+        raise ValueError(f"API returned empty message.content (finish_reason={finish_reason!r})")
     return validate_score(extract_json(content)), {
         "request_id": parsed.get("id") or parsed.get("request_id"),
         "response_model": parsed.get("model"),
@@ -234,6 +247,7 @@ def score_sheet(args):
         "input_sha256": input_hash,
         "rows": len(rows),
         "judge_prompt_sha256": hashlib.sha256(SYSTEM_PROMPT.encode("utf-8")).hexdigest(),
+        "request_strategy": "json_object first; DeepSeek plain-json fallback on retry; thinking disabled",
     }
 
     if args.dry_run:
@@ -248,10 +262,16 @@ def score_sheet(args):
             return
         raise FileExistsError(f"score output exists: {scores_path}")
     if metadata_path.exists():
-        if not args.resume:
-            raise FileExistsError(f"metadata exists; use --resume: {metadata_path}")
-        if json.loads(metadata_path.read_text(encoding="utf-8")) != metadata:
-            raise ValueError("resume metadata differs from current provider/model/input")
+        existing_metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        existing_records = read_jsonl(audit_path)
+        if not existing_records and not scores_path.exists():
+            # A failed first request has no score to preserve; refresh its metadata safely.
+            write_json(metadata_path, metadata)
+        else:
+            if not args.resume:
+                raise FileExistsError(f"metadata exists; use --resume: {metadata_path}")
+            if existing_metadata != metadata:
+                raise ValueError("resume metadata differs from current provider/model/input")
     else:
         if audit_path.exists():
             raise FileExistsError("audit output exists without metadata; refusing to continue")
@@ -267,7 +287,9 @@ def score_sheet(args):
         last_error = None
         for attempt in range(1, args.max_retries + 1):
             try:
-                score, response_meta = call_api(url, api_key, payload, args.timeout)
+                score, response_meta = call_api(
+                    url, api_key, retry_payload(args.provider, payload, attempt), args.timeout
+                )
                 break
             except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError, json.JSONDecodeError) as error:
                 last_error = error
