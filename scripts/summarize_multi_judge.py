@@ -282,7 +282,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sample-ids", default="runs/quality_eval/sample_ids.json")
     parser.add_argument("--blind-key", default="runs/quality_eval/blind_key.json")
-    parser.add_argument("--chatgpt-work", default="chatgpt_work_scores.csv")
+    parser.add_argument(
+        "--chatgpt-work",
+        default="runs/quality_eval/judge_scores/chatgpt_work_scores.csv",
+    )
     parser.add_argument("--deepseek", default="runs/quality_eval/judge_scores/deepseek_scores.csv")
     parser.add_argument("--qwen", default="runs/quality_eval/judge_scores/qwen_scores.csv")
     parser.add_argument("--output-dir", default="runs/quality_eval/multi_judge")
